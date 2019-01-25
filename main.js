@@ -4,22 +4,11 @@ const querystring = require("querystring");
 
 require('dotenv').config({path: __dirname + '/.env'});
 
-// const http = require('http');
-// const hostname = '127.0.0.1';
-// const port = 3000;
-// const server = http.createServer((req, res) => {
-//   res.statusCode = 200;
-//   res.setHeader('Content-Type', 'text/plain');
-//   res.end('Hello World\n');
-// });
-// server.listen(port, hostname, () => {
-//   console.log(`Server running at http://${hostname}:${port}/`);
-// });
+var token, expiry;
 
-var token;
-var expiry;
+function getToken(callback) {
 
-function getToken() {
+    var resp;
 
     var data = querystring.stringify({
         tenant: process.env.tenant,
@@ -28,7 +17,6 @@ function getToken() {
         client_secret: process.env.client_secret,
         grant_type: process.env.grant_type
     });
-    
     
     var options = {
         host: 'login.microsoftonline.com',
@@ -42,12 +30,12 @@ function getToken() {
     };
   
     const req = https.request(options, (res) => {
-        // console.log(`statusCode: ${res.statusCode}`)
         res.on('data', (d) => {
-            var resp = JSON.parse(d.toString('utf8'));
-            token = resp.access_token;
-            expiry = resp.expires_in;
-            console.log(token);
+            resp = JSON.parse(d.toString('utf8'));
+            callback({
+                token: resp.access_token,
+                expiry: Date.now() + parseInt(resp.expires_in) * 1000}
+            );
         })
     })
     
@@ -55,17 +43,24 @@ function getToken() {
         console.error(error)
     })
     
-    req.end(data)
+    req.end(data);
 }
 
-getToken();
+getToken((c) => {
+    token = c.token;
+    expiry = c.expiry;
 
-var client = MicrosoftGraph.Client.init({
-    authProvider: (done) => {
-        done(null, "PassInAccessTokenHere"); //first parameter takes an error if you can't get an access token
-    }
+    var client = MicrosoftGraph.Client.init({
+        authProvider: (done) => {
+            done(null, token); //first parameter takes an error if you can't get an access token
+        }
+    });
+    
+    client.api('/security/alerts').top(1000).get((err, res) => {
+        console.log(err); // prints info about authenticated user
+        console.log(res); // prints info about authenticated user
+    });
 });
 
-client.api('/security/alerts').top(1000).get((err, res) => {
-    console.log(res); // prints info about authenticated user
-});
+
+
