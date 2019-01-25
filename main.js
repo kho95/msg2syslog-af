@@ -52,10 +52,10 @@ function getToken() {
     // console.error(error)
     // })
     
-    req.write(data)
+    // req.write()
 
     console.log("3")
-    req.end()
+    req.end(data)
     console.log("4")
 }
 
