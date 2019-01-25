@@ -25,10 +25,6 @@ function getToken() {
         client_secret: process.env.client_secret,
         grant_type: process.env.grant_type
     });
-
-    console.log(process.env.tenant)
-    console.log(process.env.client_id)
-    console.log(process.env.scope)
     
     var options = {
         host: 'login.microsoftonline.com',
