@@ -14,6 +14,9 @@ const querystring = require("querystring");
 //   console.log(`Server running at http://${hostname}:${port}/`);
 // });
 
+var token;
+var expiry;
+
 function getToken() {
 
     var data = querystring.stringify({
@@ -35,25 +38,21 @@ function getToken() {
         }
     };
   
-    console.log("1")
     const req = https.request(options, (res) => {
-        console.log(`statusCode: ${res.statusCode}`)
-        
+        // console.log(`statusCode: ${res.statusCode}`)
         res.on('data', (d) => {
-            process.stdout.write(d)
+            var resp = JSON.parse(d.toString('utf8'));
+            token = resp.access_token;
+            expiry = resp.expires_in;
+            console.log(token);
         })
     })
     
-    console.log("2")
-    // req.on('error', (error) => {
-    // console.error(error)
-    // })
+    req.on('error', (error) => {
+        console.error(error)
+    })
     
-    // req.write()
-
-    console.log("3")
     req.end(data)
-    console.log("4")
 }
 
 getToken();
