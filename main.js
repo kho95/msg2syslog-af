@@ -1,5 +1,8 @@
 const MicrosoftGraph = require("@microsoft/microsoft-graph-client");
 const https = require("https");
+const querystring = require("querystring");
+
+require('dotenv').config({path: __dirname + '/.env'});
 
 // const http = require('http');
 // const hostname = '127.0.0.1';
@@ -15,13 +18,17 @@ const https = require("https");
 
 function getToken() {
 
-    var data = JSON.stringify({
-        tenant: '5a0c7fc7-56ad-4197-a7fa-1679ec0405f0',
-        client_id: '7ce6f721-7927-4f3f-b30e-1d1470193156',
-        scope: 'https://graph.microsoft.com/.default',
-        client_secret: 'jhPOEH71lqmkfBBF433%=-+',
-        grant_type: 'client_credentials'
+    var data = querystring.stringify({
+        tenant: process.env.tenant,
+        client_id: process.env.client_id,
+        scope: process.env.scope,
+        client_secret: process.env.client_secret,
+        grant_type: process.env.grant_type
     });
+
+    console.log(process.env.tenant)
+    console.log(process.env.client_id)
+    console.log(process.env.scope)
     
     var options = {
         host: 'login.microsoftonline.com',
@@ -29,7 +36,7 @@ function getToken() {
         path: '/b84melive.onmicrosoft.com/oauth2/v2.0/token',
         method: 'POST',
         headers: {
-            'Content-Type': 'application/form-data',
+            'Content-Type': 'application/x-www-form-urlencoded',
             'Content-Length': data.length
         }
     };
