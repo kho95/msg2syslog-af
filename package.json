@@ -19,7 +19,12 @@
   "homepage": "https://github.com/fong/msg2syslog#readme",
   "dependencies": {
     "@microsoft/microsoft-graph-client": "^1.4.0",
+<<<<<<< HEAD
+    "dotenv": "^6.2.0",
+    "request": "^2.88.0",
+=======
     "querystring": "^0.2.0",
+>>>>>>> 73f1ba219e6679406afe10b135f87b0f65232d76
     "syslog-client": "^1.1.1"
   }
 }
