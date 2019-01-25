@@ -26,6 +26,7 @@ function getToken() {
         grant_type: process.env.grant_type
     });
     
+    
     var options = {
         host: 'login.microsoftonline.com',
         port: '443',
