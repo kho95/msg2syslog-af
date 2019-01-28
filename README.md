@@ -3,9 +3,8 @@
 It's quite simple, this is a function which queries (via polling) alerts from MS Graph and forwards them to a Syslog Server.
 
 ## To do
-* Connect up with syslog-client
-* Move alert feed time interval to env file
-* Rerequest token on expiration <- needs testing
+* Add pagination
+* Add query restriction
 * Modify to run as Azure Functions App
 
 ## Requirements
