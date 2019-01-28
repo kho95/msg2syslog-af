@@ -23,7 +23,7 @@ function getToken(callback) {
     var options = {
         host: 'login.microsoftonline.com',
         port: '443',
-        path: '/b84melive.onmicrosoft.com/oauth2/v2.0/token',
+        path: '/'+process.env.token_domain+'/oauth2/v2.0/token',
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -36,7 +36,7 @@ function getToken(callback) {
             resp = JSON.parse(d.toString('utf8'));
             callback({
                 token: resp.access_token,
-                expiry: Date.now() + parseInt(resp.expires_in) * 1000}
+                expiry: resp.expires_in}
             );
         })
     })
@@ -48,6 +48,7 @@ function getToken(callback) {
     req.end(data);
 }
 
+//getting the (new) token
 async function refresh() {
     return new Promise(function(resolve, reject) {
         getToken((c) => {
@@ -59,8 +60,7 @@ async function refresh() {
                     done(null, token); //first parameter takes an error if you can't get an access token
                 }
             });
-    
-            setTimeout(function(){ refresh() }, ( Date.now + parseInt(c.expiry) ));
+            setTimeout(function(){ refresh() }, ( expiry * 1000 )); //try to get a new token after <expiry>ms * 1000 ms
             resolve(token)
         });      
     });
