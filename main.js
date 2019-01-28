@@ -67,10 +67,27 @@ async function refresh() {
 };
 
 function getAlerts() {
-    client.api('/security/alerts').top(1).get((err, res) => {
-        console.log(err); // prints info about authenticated user
-        console.log(res); // prints info about authenticated user
+    let alerts;
+
+    //res is already parsed!
+    client.api('/security/alerts').top(5).get((err, res) => {
+        if(err === null){
+            checkAlertTag(res);
+        }
+        else{
+            //error occured?
+        } 
     });
+}
+
+//Check/count how many alerts have the tag 'forwarded;
+function checkAlertTag(res){
+    let targetTag = "forwarded";
+    let alertList = res.value;
+    let alertsWithTag = alertList.filter(function(x){
+        return x.tags.indexOf(targetTag) > -1;
+    });
+    console.log("there are "+alertsWithTag.length+" alerts with tag '"+targetTag+"'");
 }
 
 async function main() {
