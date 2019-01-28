@@ -4,7 +4,7 @@ const querystring = require("querystring");
 
 require('dotenv').config({path: __dirname + '/.env'});
 
-var time_interval = 60000; // polling time interval in millis
+var time_interval = process.env.time_interval; // polling time interval in millis
 
 var client, token, expiry;
 
