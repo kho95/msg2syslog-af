@@ -93,27 +93,12 @@ function getAlerts() {
 
 		var securityAlerts = res;
 		for (var i = 0; i <securityAlerts.value.length; i++){
-			console.log(securityAlerts.value[i].id);
-			if(securityAlerts.value[i].tags.length == 0){
-
-			}
-		}
-			
+			console.log(securityAlerts.value[i]);
+            syslogSend(securityAlerts.value[i]);
+            patchAlert(securityAlerts.value[i]);
+		}	
 	});
 }
-
-async function main() {
-    if (token == null || expiry == null || expiry < Date.now){
-        await refresh();
-        getAlerts();
-    }
-    
-    setInterval(function() {
-        `getAlerts`();
-    }, time_interval);
-}
-
-main();
 
 function syslogSend(alertMessage) {
   // Initialising syslog
@@ -145,4 +130,15 @@ function syslogSend(alertMessage) {
 	});
 };
 
-//getToken();
+async function main() {
+    if (token == null || expiry == null || expiry < Date.now){
+        await refresh();
+        getAlerts();
+    }
+    
+    setInterval(function() {
+        getAlerts();
+    }, time_interval);
+}
+
+main();
