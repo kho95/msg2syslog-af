@@ -5,6 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "node main.js",
+    "run": "node main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,6 +20,9 @@
   "homepage": "https://github.com/fong/msg2syslog#readme",
   "dependencies": {
     "@microsoft/microsoft-graph-client": "^1.4.0",
+    "dotenv": "^6.2.0",
+    "request": "^2.88.0",
+    "querystring": "^0.2.0",
     "syslog-client": "^1.1.1"
   }
 }
