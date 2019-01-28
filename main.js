@@ -48,6 +48,28 @@ function getToken(callback) {
     req.end(data);
 }
 
+function patchAlert(alert) {
+    client.api('/security/alerts/' + alert.id).patch( {
+        "assignedTo": "SyslogForwarder",
+        "closedDateTime": new Date(Date.now()).toISOString(),
+        "comments": alert.comments,
+        "tags": alert.tags,
+        "feedback": "unknown",
+        "status": "inProgress",
+        "vendorInformation": {
+            "provider": alert.vendorInformation.provider,
+            "providerVersion": alert.vendorInformation.providerVersion,
+            "subProvider": alert.vendorInformation.subProvider,
+            "vendor": alert.vendorInformation.vendor
+        }
+    },
+        (err, res) => {
+        console.log(err); // prints info about authenticated user
+        console.log(res); // prints info about authenticated user
+        // callback({err, res});
+    });
+}
+
 //getting the (new) token
 async function refresh() {
     return new Promise(function(resolve, reject) {
