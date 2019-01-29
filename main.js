@@ -100,21 +100,19 @@ async function getAlertsAPI(top, skip) {
 	});
 }
 
-function checkIfMoreAlert(result){
-	let nextLink = result["@odata.nextLink"];
-	if(nextLink == null){
-		return 0;
-	}
-	
-	return 1;
-}
 
 function sendAndPatchAlerts(securityAlerts){
-	for (var i = 0; i <securityAlerts.value.length; i++){
+	try{
+		for (var i = 0; i <securityAlerts.value.length; i++){
 			console.log(securityAlerts.value[i]);
 		    syslogSend(securityAlerts.value[i]);
 		    patchAlert(securityAlerts.value[i]);
 		}
+	}catch(err){
+		console.log("Exception occured when accessing or sending alert data: " + err);
+		console.log("Is securityAlerts object still what you expected?");
+	}
+	
 }
 
 
@@ -133,6 +131,7 @@ async function getAlerts() {
 		//sendAndPatchAlerts(securityAlerts);
 	
 		//Check if there are more alerts by checking the 'nextLink' in the returned obj
+		//if nextLink is null = no more alerts 
 		let nextLink = securityAlerts["@odata.nextLink"];
 		if(nextLink != null){
 			//Extract top and skip values from the URL
