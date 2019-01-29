@@ -1,10 +1,9 @@
 # Microsoft Graph Security REST API to Syslog
 
-It's quite simple, this is a function which queries (via polling) alerts from MS Graph and forwards them to a Syslog Server.
+It's quite simple, this is a function which queries (via polling) security alerts from Microsoft Graph and forwards the alerts to a Syslog Server.
 
 ## To do
-* Add pagination
-* Add query restriction
+* Integration Tests
 * Modify to run as Azure Functions App
 
 ## Requirements
