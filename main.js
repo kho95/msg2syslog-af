@@ -48,27 +48,31 @@ function getToken(callback) {
 
 }
 
-function patchAlert(alert) {
-	console.log("in patch alert");
-	client.api('/security/alerts/' + alert.id).patch({
-		"assignedTo": "SyslogForwarder",
-		"closedDateTime": new Date(Date.now()).toISOString(),
-		"comments": alert.comments,
-		"tags": alert.tags,
-		"feedback": "unknown",
-		"status": "inProgress",
-		"vendorInformation": {
-			"provider": alert.vendorInformation.provider,
-			"providerVersion": alert.vendorInformation.providerVersion,
-			"subProvider": alert.vendorInformation.subProvider,
-			"vendor": alert.vendorInformation.vendor
-		}
-	},
-		(err, res) => {
-			//console.log(err); // prints info about authenticated user
-			//console.log(res); // prints info about authenticated user
-			// callback({err, res});
-		});
+async function patchAlert(alert) {
+
+	return new Promise(function (resolve, reject) {
+		console.log("in patch alert");
+		client.api('/security/alerts/' + alert.id).patch({
+			"assignedTo": "SyslogForwarder",
+			"closedDateTime": new Date(Date.now()).toISOString(),
+			"comments": alert.comments,
+			"tags": alert.tags,
+			"feedback": "unknown",
+			"status": "inProgress",
+			"vendorInformation": {
+				"provider": alert.vendorInformation.provider,
+				"providerVersion": alert.vendorInformation.providerVersion,
+				"subProvider": alert.vendorInformation.subProvider,
+				"vendor": alert.vendorInformation.vendor
+			}
+		},
+			(err, res) => {
+				resolve(res);
+			});
+
+	});
+
+
 }
 
 //getting the (new) token
@@ -96,18 +100,18 @@ async function getAlertsAPI(top, skip) {
 			resolve(res);
 		})
 		.catch((err) => {
-			reject(err);
+			// reject(err);
 		});
 	});
 }
 
 
-function sendAndPatchAlerts(securityAlerts){
+async function sendAndPatchAlerts(securityAlerts){
 	try{
 		for (var i = 0; i <securityAlerts.value.length; i++){
 			//console.log(securityAlerts.value[i]);
 		    syslogSend(securityAlerts.value[i]);
-		    patchAlert(securityAlerts.value[i]);
+		    await patchAlert(securityAlerts.value[i]);
 		}
 	}catch(err){
 		console.log("Exception occured when accessing or sending alert data: " + err);
@@ -116,37 +120,28 @@ function sendAndPatchAlerts(securityAlerts){
 	
 }
 
-
 async function getAlerts() {
 
-	let moreAlerts = false;
-	let _top = 5; //number of alerts to pull at a time
+	let moreAlerts = true;
+	let _top = 1; //number of alerts to pull at a time
 	let _skip = 0; //number of alerts to skip (offset) default to 0
 
 	do{
 		let securityAlerts = await getAlertsAPI(_top,_skip);
 	
 		console.log("in getalerts");
-		console.log(securityAlerts);
-	
-		sendAndPatchAlerts(securityAlerts);
-	
-		//Check if there are more alerts by checking the 'nextLink' in the returned obj
-		//if nextLink is null = no more alerts 
-		let nextLink = securityAlerts["@odata.nextLink"];
-		if(nextLink != null){
-			//Extract top and skip values from the URL
-			//example: https://graph.microsoft.com/v1.0/security/alerts?$filter=status+eq+%27newAlert%27&$top=5&$skip=5 (the 5 and 5)
-			_top = parseInt(nextLink.split('&')[1].split('=')[1]);
-			_skip = parseInt(nextLink.split('&')[2].split('=')[1]);
-			moreAlerts = true;
-			console.log("fetching more.. top="+_top+" skip="+_skip);
+
+		if(securityAlerts.value.length != 0){
+			for (var i=0; i<securityAlerts.value.length; i++){
+				console.log(securityAlerts.value[i].id);
+			}
+			await sendAndPatchAlerts(securityAlerts);
 		}
 		else{
-			console.log("no more alerts!");
 			moreAlerts = false;
+			console.log("no more alerts!");
 		}
-
+	
 	}while(moreAlerts);
 }
 
@@ -156,16 +151,16 @@ function syslogSend(alertMessage) {
 	var syslog = require("syslog-client");
 
 	// Getting environment variables
-	var SYSLOG_SERVER = SYSLOG_SERVER;
+	var SYSLOG_SERVER = "23.101.230.231";
 	var SYSLOG_PROTOCOL = SYSLOG_PROTOCOL;
 	var SYSLOG_HOSTNAME = SYSLOG_HOSTNAME;
 	var SYSLOG_PORT = SYSLOG_PORT;
 
 	// Options for syslog connection
 	var options = {
-		syslogHostname: SYSLOG_HOSTNAME,
-		transport: SYSLOG_PROTOCOL,
-		port: SYSLOG_PORT
+		syslogHostname: "SyslogForwarder",
+		transport: "UDP",
+		port: 514
 	};
 
 	// Create syslog client
