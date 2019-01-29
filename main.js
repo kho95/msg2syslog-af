@@ -1,15 +1,13 @@
 const MicrosoftGraph = require("@microsoft/microsoft-graph-client");
 const https = require("https");
 const querystring = require("querystring");
-
 require("dotenv").config({ path: __dirname + "/.env" });
 
 var time_interval = parseInt(process.env.time_interval); // polling time interval in millis
-
 var client, token, expiry;
 
+/* Get Microsoft Graph Authentication Token */
 function getToken(callback) {
-	var resp;
 	var data = querystring.stringify({
 		tenant: process.env.tenant,
 		client_id: process.env.client_id,
@@ -31,32 +29,35 @@ function getToken(callback) {
 
 	const req = https.request(options, (res) => {
 		res.on('data', (d) => {
-			resp = JSON.parse(d.toString('utf8'));
+			var resp = JSON.parse(d.toString('utf8'));
 			callback({
 				token: resp.access_token,
 				expiry: resp.expires_in
-			}
-			);
+			});
 		})
 	})
 
 	req.on('error', (error) => {
-		console.error(error)
+        console.log(error);
+        var timeout = 30000;
+        console.log("Trying again in " + timeout + " milliseconds");
+        req.end();
+		setTimeout(getToken, timeout);
 	});
 
 	req.end(data);
-
 }
 
+/* Mark alert on Microsoft Graph Security as forwarded */
 function patchAlert(alert) {
-	console.log("in patch alert");
+    console.log("Patching " + alert.id);
 	client.api('/security/alerts/' + alert.id).patch({
 		"assignedTo": "SyslogForwarder",
 		"closedDateTime": new Date(Date.now()).toISOString(),
 		"comments": alert.comments,
 		"tags": alert.tags,
 		"feedback": "unknown",
-		"status": "inProgress",
+		"status": "newAlert",
 		"vendorInformation": {
 			"provider": alert.vendorInformation.provider,
 			"providerVersion": alert.vendorInformation.providerVersion,
@@ -64,14 +65,10 @@ function patchAlert(alert) {
 			"vendor": alert.vendorInformation.vendor
 		}
 	},
-		(err, res) => {
-			//console.log(err); // prints info about authenticated user
-			//console.log(res); // prints info about authenticated user
-			// callback({err, res});
-		});
+    (err, res) => { });
 }
 
-//getting the (new) token
+/* Get the (new) authentication token */
 async function refresh() {
 	return new Promise(function (resolve, reject) {
 		getToken((c) => {
@@ -89,9 +86,10 @@ async function refresh() {
 	});
 };
 
+/* Get new alerts by 'page' */
 async function getAlertsAPI(top, skip) {
 	return new Promise((resolve, reject) => {
-		client.api("/security/alerts").filter("status eq 'newAlert'").top(top).skip(skip).get()
+		client.api("/security/alerts").filter("status eq 'inProgress'").top(top).skip(skip).get()
 		.then(res => {
 			resolve(res);
 		})
@@ -101,82 +99,72 @@ async function getAlertsAPI(top, skip) {
 	});
 }
 
-
+/* Send alerts to Syslog and patch alerts on Microsoft Graph */
 function sendAndPatchAlerts(securityAlerts){
-	try{
-		for (var i = 0; i <securityAlerts.value.length; i++){
-			//console.log(securityAlerts.value[i]);
+	try {
+		for (var i = 0; i <securityAlerts.value.length; i++) {
 		    syslogSend(securityAlerts.value[i]);
 		    patchAlert(securityAlerts.value[i]);
 		}
-	}catch(err){
+	} catch (err) {
 		console.log("Exception occured when accessing or sending alert data: " + err);
-		console.log("Is securityAlerts object still what you expected?");
 	}
-	
 }
 
-
+/* Get all new alerts */
 async function getAlerts() {
 
 	let moreAlerts = false;
-	let _top = 5; //number of alerts to pull at a time
-	let _skip = 0; //number of alerts to skip (offset) default to 0
+	let _top = 1000; // number of alerts to pull at a time (max 1000)
+	let _skip = 0; // number of alerts to skip (offset) default to 0
 
-	do{
+	do {
 		let securityAlerts = await getAlertsAPI(_top,_skip);
-	
-		console.log("in getalerts");
 		console.log(securityAlerts);
-	
 		sendAndPatchAlerts(securityAlerts);
 	
 		//Check if there are more alerts by checking the 'nextLink' in the returned obj
 		//if nextLink is null = no more alerts 
 		let nextLink = securityAlerts["@odata.nextLink"];
-		if(nextLink != null){
+		if (nextLink != null) {
 			//Extract top and skip values from the URL
 			//example: https://graph.microsoft.com/v1.0/security/alerts?$filter=status+eq+%27newAlert%27&$top=5&$skip=5 (the 5 and 5)
 			_top = parseInt(nextLink.split('&')[1].split('=')[1]);
 			_skip = parseInt(nextLink.split('&')[2].split('=')[1]);
 			moreAlerts = true;
-			console.log("fetching more.. top="+_top+" skip="+_skip);
+			console.log("fetching next top="+_top+" skip="+_skip);
 		}
-		else{
+		else {
 			console.log("no more alerts!");
 			moreAlerts = false;
 		}
-
-	}while(moreAlerts);
+	} while (moreAlerts);
 }
 
-function syslogSend(alertMessage) {
-	console.log("in syslog send");
+function syslogSend(alert) {
+	console.log("Sending Syslog " + alert.id);
 	// Initialising syslog
 	var syslog = require("syslog-client");
 
 	// Getting environment variables
 	var SYSLOG_SERVER = SYSLOG_SERVER;
-	var SYSLOG_PROTOCOL = SYSLOG_PROTOCOL;
-	var SYSLOG_HOSTNAME = SYSLOG_HOSTNAME;
-	var SYSLOG_PORT = SYSLOG_PORT;
 
 	// Options for syslog connection
 	var options = {
-		syslogHostname: SYSLOG_HOSTNAME,
-		transport: SYSLOG_PROTOCOL,
-		port: SYSLOG_PORT
+		syslogHostname: "SyslogForwarder",
+		transport: "UDP",
+		port: 514
 	};
 
 	// Create syslog client
 	var client = syslog.createClient(SYSLOG_SERVER, options);
 
 	// Send syslog message
-	client.log(JSON.stringify(alertMessage), options, function (error) {
+	client.log(JSON.stringify(alert), options, function (error) {
 		if (error) {
 			console.log(error);
 		} else {
-			console.log("Sent message successfully");
+			console.log("Sent " + alert.id + " successfully!");
 		}
 	});
 };

@@ -4,6 +4,7 @@ It's quite simple, this is a function which queries (via polling) security alert
 
 ## To do
 * Integration Tests
+* Token fail fallback function
 * Modify to run as Azure Functions App
 
 ## Requirements
@@ -23,13 +24,17 @@ For this application to work, you will need:
 
 ## Example `.env` file
 ```
-tenant=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
-client_id=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
-scope=https://graph.microsoft.com/.default
-client_secret=XXXXXXXXXXXXXXXXXXXXXXX
-grant_type=client_credentials
-time_interval= 60000
+tenant = XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+client_id = XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+scope = https://graph.microsoft.com/.default
+client_secret = XXXXXXXXXXXXXXXXXXXXXXX
+grant_type = client_credentials
+time_interval = 60000
 token_domain = [your-tenant-name].onmicrosoft.com
+hostname = [SyslogForwarder]
+ip_address = XXX.XXX.XXX.XXX
+port = 514
+transport = UDP
 ```
 
 Note: `time_interval` controls the Graph API poll interval (in milliseconds).
