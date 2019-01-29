@@ -49,6 +49,7 @@ function getToken(callback) {
 }
 
 function patchAlert(alert) {
+	console.log("in patch alert");
 	client.api('/security/alerts/' + alert.id).patch({
 		"assignedTo": "SyslogForwarder",
 		"closedDateTime": new Date(Date.now()).toISOString(),
@@ -64,8 +65,8 @@ function patchAlert(alert) {
 		}
 	},
 		(err, res) => {
-			console.log(err); // prints info about authenticated user
-			console.log(res); // prints info about authenticated user
+			//console.log(err); // prints info about authenticated user
+			//console.log(res); // prints info about authenticated user
 			// callback({err, res});
 		});
 }
@@ -104,7 +105,7 @@ async function getAlertsAPI(top, skip) {
 function sendAndPatchAlerts(securityAlerts){
 	try{
 		for (var i = 0; i <securityAlerts.value.length; i++){
-			console.log(securityAlerts.value[i]);
+			//console.log(securityAlerts.value[i]);
 		    syslogSend(securityAlerts.value[i]);
 		    patchAlert(securityAlerts.value[i]);
 		}
@@ -128,7 +129,7 @@ async function getAlerts() {
 		console.log("in getalerts");
 		console.log(securityAlerts);
 	
-		//sendAndPatchAlerts(securityAlerts);
+		sendAndPatchAlerts(securityAlerts);
 	
 		//Check if there are more alerts by checking the 'nextLink' in the returned obj
 		//if nextLink is null = no more alerts 
@@ -150,6 +151,7 @@ async function getAlerts() {
 }
 
 function syslogSend(alertMessage) {
+	console.log("in syslog send");
 	// Initialising syslog
 	var syslog = require("syslog-client");
 
