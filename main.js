@@ -3,23 +3,23 @@ const https = require("https");
 const querystring = require("querystring");
 require("dotenv").config({ path: __dirname + "/.env" });
 
-var time_interval = parseInt(process.env.time_interval); // polling time interval in millis
+var time_interval = parseInt( GetEnvironmentVariable(TIME_INTERVAL) ); // polling time interval in millis
 var client, token, expiry;
 
 /* Get Microsoft Graph Authentication Token */
 function getToken(callback) {
 	var data = querystring.stringify({
-		tenant: process.env.tenant,
-		client_id: process.env.client_id,
-		scope: process.env.scope,
-		client_secret: process.env.client_secret,
-		grant_type: process.env.grant_type
+		tenant:  GetEnvironmentVariable(MSG_TENANT),
+		client_id: GetEnvironmentVariable(MSG_CLIENT_ID),
+		scope: GetEnvironmentVariable(MSG_SCOPE) || "https://graph.microsoft.com/.default",
+		client_secret: GetEnvironmentVariable(MSG_CLIENT_SECRET),
+		grant_type: GetEnvironmentVariable(MSG_GRANT_TYPE) || client_credentials
 	});
 
 	var options = {
 		host: 'login.microsoftonline.com',
 		port: '443',
-		path: '/' + process.env.token_domain + '/oauth2/v2.0/token',
+		path: '/' + GetEnvironmentVariable(TOKEN_DOMAIN) + '/oauth2/v2.0/token',
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/x-www-form-urlencoded',
@@ -138,17 +138,14 @@ function syslogSend(alert) {
 	console.log("Sending Syslog " + alert.id);
 	var syslog = require("syslog-client");
 
-	// Getting environment variables
-	var SYSLOG_SERVER = "23.101.230.231";
-
 	// Options for syslog connection
 	var options = {
-		syslogHostname: "SyslogForwarder",
-		transport: "UDP",
-		port: 514
+		syslogHostname: GetEnvironmentVariable(SYSLOG_HOSTNAME) || "SyslogForwarder",
+		transport: GetEnvironmentVariable(SYSLOG_TRANSPORT),
+		port: parseInt(GetEnvironmentVariable(SYSLOG_PORT))
 	};
 
-	var client = syslog.createClient(SYSLOG_SERVER, options);
+	var client = syslog.createClient( GetEnvironmentVariable(SYSLOG_SERVER) , options);
 
 	// Send syslog message
 	client.log(JSON.stringify(alert), options, function (error) {
