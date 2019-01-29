@@ -42,30 +42,34 @@ function getToken(callback) {
         var timeout = 30000;
         console.log("Trying again in " + timeout + " milliseconds");
         req.end();
-		setTimeout(getToken, timeout);
+		setTimeout(getToken(() => {}), timeout);
 	});
 
 	req.end(data);
 }
 
 /* Mark alert on Microsoft Graph Security as forwarded */
-function patchAlert(alert) {
-    console.log("Patching " + alert.id);
-	client.api('/security/alerts/' + alert.id).patch({
-		"assignedTo": "SyslogForwarder",
-		"closedDateTime": new Date(Date.now()).toISOString(),
-		"comments": alert.comments,
-		"tags": alert.tags,
-		"feedback": "unknown",
-		"status": "newAlert",
-		"vendorInformation": {
-			"provider": alert.vendorInformation.provider,
-			"providerVersion": alert.vendorInformation.providerVersion,
-			"subProvider": alert.vendorInformation.subProvider,
-			"vendor": alert.vendorInformation.vendor
-		}
-	},
-    (err, res) => { });
+async function patchAlert(alert) {
+	return new Promise(function (resolve, reject) {
+		console.log("Patching " + alert.id);
+		client.api('/security/alerts/' + alert.id).patch({
+			"assignedTo": "SyslogForwarder",
+			"closedDateTime": new Date(Date.now()).toISOString(),
+			"comments": alert.comments,
+			"tags": alert.tags,
+			"feedback": "unknown",
+			"status": "inProgress",
+			"vendorInformation": {
+				"provider": alert.vendorInformation.provider,
+				"providerVersion": alert.vendorInformation.providerVersion,
+				"subProvider": alert.vendorInformation.subProvider,
+				"vendor": alert.vendorInformation.vendor
+			}
+		},
+        (err, res) => {
+            resolve(res);
+        });
+	});
 }
 
 /* Get the (new) authentication token */
@@ -89,22 +93,22 @@ async function refresh() {
 /* Get new alerts by 'page' */
 async function getAlertsAPI(top, skip) {
 	return new Promise((resolve, reject) => {
-		client.api("/security/alerts").filter("status eq 'inProgress'").top(top).skip(skip).get()
+		client.api("/security/alerts").filter("status eq 'newAlert'").top(top).skip(skip).get()
 		.then(res => {
 			resolve(res);
 		})
 		.catch((err) => {
-			reject(err);
+			// reject(err);
 		});
 	});
 }
 
 /* Send alerts to Syslog and patch alerts on Microsoft Graph */
-function sendAndPatchAlerts(securityAlerts){
-	try {
-		for (var i = 0; i <securityAlerts.value.length; i++) {
+async function sendAndPatchAlerts(securityAlerts){
+	try{
+		for (var i = 0; i <securityAlerts.value.length; i++){
 		    syslogSend(securityAlerts.value[i]);
-		    patchAlert(securityAlerts.value[i]);
+		    await patchAlert(securityAlerts.value[i]);
 		}
 	} catch (err) {
 		console.log("Exception occured when accessing or sending alert data: " + err);
@@ -120,34 +124,22 @@ async function getAlerts() {
 
 	do {
 		let securityAlerts = await getAlertsAPI(_top,_skip);
-		console.log(securityAlerts);
-		sendAndPatchAlerts(securityAlerts);
-	
-		//Check if there are more alerts by checking the 'nextLink' in the returned obj
-		//if nextLink is null = no more alerts 
-		let nextLink = securityAlerts["@odata.nextLink"];
-		if (nextLink != null) {
-			//Extract top and skip values from the URL
-			//example: https://graph.microsoft.com/v1.0/security/alerts?$filter=status+eq+%27newAlert%27&$top=5&$skip=5 (the 5 and 5)
-			_top = parseInt(nextLink.split('&')[1].split('=')[1]);
-			_skip = parseInt(nextLink.split('&')[2].split('=')[1]);
-			moreAlerts = true;
-			console.log("fetching next top="+_top+" skip="+_skip);
+		if (securityAlerts.value.length != 0) {
+			await sendAndPatchAlerts(securityAlerts);
 		}
 		else {
-			console.log("no more alerts!");
 			moreAlerts = false;
+			console.log("no more alerts!");
 		}
 	} while (moreAlerts);
 }
 
 function syslogSend(alert) {
 	console.log("Sending Syslog " + alert.id);
-	// Initialising syslog
 	var syslog = require("syslog-client");
 
 	// Getting environment variables
-	var SYSLOG_SERVER = SYSLOG_SERVER;
+	var SYSLOG_SERVER = "23.101.230.231";
 
 	// Options for syslog connection
 	var options = {
@@ -156,7 +148,6 @@ function syslogSend(alert) {
 		port: 514
 	};
 
-	// Create syslog client
 	var client = syslog.createClient(SYSLOG_SERVER, options);
 
 	// Send syslog message
